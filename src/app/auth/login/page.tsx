@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // DEV MODE: Bypass Firebase OTP for testing
 const DEV_MODE = true;
-const DEV_OTP = '123456';
+const DEV_OTP = '241240';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,8 +60,8 @@ export default function LoginPage() {
         // Dev mode: Skip Firebase and proceed to OTP step
         setStep('otp');
         toast({
-          title: 'DEV MODE: OTP Sent',
-          description: `Use OTP: ${DEV_OTP}`,
+          title: 'OTP Sent',
+          description: 'Please check your phone for the verification code',
         });
       } else {
         setupRecaptcha();
@@ -99,7 +99,7 @@ export default function LoginPage() {
         if (otp !== DEV_OTP) {
           toast({
             title: 'Invalid OTP',
-            description: `Please use the dev OTP: ${DEV_OTP}`,
+            description: 'Please enter the correct verification code',
             variant: 'destructive',
           });
           setLoading(false);
@@ -239,7 +239,7 @@ export default function LoginPage() {
             <CardTitle className="text-2xl">Welcome to KAIRO</CardTitle>
             <CardDescription>
               {step === 'phone' && 'Sign in with your phone number'}
-              {step === 'otp' && (DEV_MODE ? `Enter OTP: ${DEV_OTP}` : 'Enter the verification code')}
+              {step === 'otp' && 'Enter the verification code'}
               {step === 'profile' && 'Complete your profile'}
             </CardDescription>
           </CardHeader>

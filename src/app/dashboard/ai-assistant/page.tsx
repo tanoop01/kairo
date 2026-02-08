@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { MessageSquare, Send, Sparkles, Book, Scale, Phone } from 'lucide-react';
-import { getAIRightsGuidance } from '@/lib/ai';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import ReactMarkdown from 'react-markdown';
@@ -24,10 +23,21 @@ export default function AIAssistantPage() {
     setResponse(null);
 
     try {
-      const aiResponse = await getAIRightsGuidance({
-        query,
-        language: user.preferredLanguage,
+      const response = await fetch('/api/ai/rights-guidance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          language: user.preferredLanguage,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI guidance');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.guidance;
 
       setResponse(aiResponse);
 

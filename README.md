@@ -16,7 +16,7 @@ KAIRO is a production-grade civic technology platform that bridges citizens and 
 ### Core Modules
 
 1. **Identity Module** - Firebase OTP authentication + Supabase user management
-2. **AI Rights Assistant** - Gemini-powered legal guidance in regional languages
+2. **AI Rights Assistant** - Groq AI-powered legal guidance in regional languages
 3. **City Intelligence Dashboard** - Map-based civic issue tracking
 4. **Petition Creation Engine** - AI-assisted drafting with multilingual support
 5. **Evidence System** - Image/video/document verification
@@ -36,7 +36,7 @@ KAIRO is a production-grade civic technology platform that bridges citizens and 
 **Backend:**
 - Supabase (PostgreSQL database)
 - Firebase Authentication (OTP)
-- Google Gemini AI (petition generation, legal guidance)
+- Groq API (llama-3.3-70b-versatile model for petition generation, legal guidance)
 
 **Infrastructure:**
 - Vercel (deployment)
@@ -50,7 +50,7 @@ KAIRO is a production-grade civic technology platform that bridges citizens and 
 - Node.js 18+ and npm
 - Firebase account
 - Supabase account
-- Google AI Studio account (for Gemini API)
+- Groq account (for AI API)
 
 ### Step 1: Clone and Install
 
@@ -76,8 +76,8 @@ npm install
 
 ### Step 4: Get AI API Key
 
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create an API key for Gemini
+1. Go to [Groq Console](https://console.groq.com/)
+2. Create an API key for llama-3.3-70b-versatile model
 3. Save it securely
 
 ### Step 5: Configure Environment
@@ -99,7 +99,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # AI Configuration
-GOOGLE_GEMINI_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key
 
 # Application Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -363,7 +363,7 @@ This project is built as a civic technology platform for public good.
 
 - Firebase for authentication infrastructure
 - Supabase for database and storage
-- Google Gemini for AI capabilities
+- Groq for AI capabilities (llama-3.3-70b-versatile)
 - shadcn/ui for beautiful components
 - The civic tech community in India
 

@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { 
   Users, MapPin, Calendar, TrendingUp, Mail, Share2, 
-  CheckCircle, AlertCircle, ArrowLeft, MessageSquare 
+  CheckCircle, AlertCircle, ArrowLeft, MessageSquare, Trash2 
 } from 'lucide-react';
 import { usePetition } from '@/hooks/usePetitions';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,7 +22,6 @@ import {
   getStatusDisplay,
   generateMailtoLink 
 } from '@/lib/utils';
-import { generateAuthorityEmail, suggestAuthorities } from '@/lib/ai';
 import Link from 'next/link';
 
 export default function PetitionDetailPage() {
@@ -38,6 +37,8 @@ export default function PetitionDetailPage() {
   const [updateContent, setUpdateContent] = useState('');
   const [suggestedAuthority, setSuggestedAuthority] = useState('');
   const [loadingAuthority, setLoadingAuthority] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (petition && user) {
@@ -77,6 +78,8 @@ export default function PetitionDetailPage() {
       });
 
       setHasSigned(true);
+      
+      // Refresh petition data to get updated count and signature list
       await refetch();
     } catch (error: any) {
       console.error('Error signing petition:', error);
@@ -95,14 +98,29 @@ export default function PetitionDetailPage() {
 
     setLoadingAuthority(true);
     try {
-      const suggestion = await suggestAuthorities(
-        petition.category,
-        petition.location.state,
-        petition.location.city
-      );
-      setSuggestedAuthority(suggestion);
+      const response = await fetch('/api/ai/suggest-authorities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: petition.category,
+          state: petition.location.state,
+          city: petition.location.city,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get authority suggestion');
+      }
+
+      const data = await response.json();
+      setSuggestedAuthority(data.suggestion);
     } catch (error) {
       console.error('Error getting authority suggestion:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to get authority suggestion',
+        variant: 'destructive',
+      });
     } finally {
       setLoadingAuthority(false);
     }
@@ -112,12 +130,23 @@ export default function PetitionDetailPage() {
     if (!petition) return;
 
     try {
-      const { subject, body } = await generateAuthorityEmail(
-        petition.title,
-        petition.description,
-        petition.signatureCount,
-        `${petition.location.city}, ${petition.location.state}`
-      );
+      const response = await fetch('/api/ai/generate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          petitionTitle: petition.title,
+          petitionContent: petition.description,
+          signatureCount: petition.signatureCount,
+          location: `${petition.location.city}, ${petition.location.state}`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate email');
+      }
+
+      const data = await response.json();
+      const { subject, body } = data.email;
 
       // For demo, we'll show the email in a mailto link
       // In production, integrate with actual authority database
@@ -183,6 +212,41 @@ export default function PetitionDetailPage() {
         description: 'Failed to post update',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleDeletePetition = async () => {
+    if (!user || !petition) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/petitions/${petition.id}/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete petition');
+      }
+
+      toast({
+        title: 'Petition Deleted',
+        description: 'Your petition has been permanently deleted',
+      });
+
+      router.push('/dashboard/petitions');
+    } catch (error: any) {
+      console.error('Error deleting petition:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete petition',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -284,7 +348,7 @@ export default function PetitionDetailPage() {
 
           {isCreator && (
             <div className="mt-8 pt-8 border-t space-y-4">
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap">
                 {!petition.sentToAuthority && petition.signatureCount >= 10 && (
                   <>
                     {!suggestedAuthority ? (
@@ -306,6 +370,14 @@ export default function PetitionDetailPage() {
                 <Button onClick={() => setShowUpdateForm(!showUpdateForm)} variant="outline">
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Post Update
+                </Button>
+                <Button 
+                  onClick={() => setShowDeleteConfirm(true)} 
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Petition
                 </Button>
               </div>
 
@@ -337,6 +409,41 @@ export default function PetitionDetailPage() {
                         Post Update
                       </Button>
                       <Button onClick={() => setShowUpdateForm(false)} variant="ghost">
+                        Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {showDeleteConfirm && (
+                <Card className="border-red-200 bg-red-50">
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-semibold text-red-900 mb-2">Delete this petition?</h4>
+                        <p className="text-sm text-red-800">
+                          This action cannot be undone. This will permanently delete your petition, 
+                          all {formatSignatureCount(petition.signatureCount)} signatures, and any updates. 
+                          All data will be lost.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleDeletePetition} 
+                        disabled={deleting}
+                        variant="destructive"
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        {deleting ? 'Deleting...' : 'Yes, Delete Permanently'}
+                      </Button>
+                      <Button 
+                        onClick={() => setShowDeleteConfirm(false)} 
+                        variant="outline"
+                        disabled={deleting}
+                      >
                         Cancel
                       </Button>
                     </div>
@@ -402,19 +509,55 @@ export default function PetitionDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Signatures ({formatSignatureCount(petition.signatureCount)})</CardTitle>
-          <CardDescription>People who support this petition</CardDescription>
+          <CardDescription>
+            {petition.signatures.length > 0 
+              ? `${petition.signatures.length} people have signed this petition`
+              : 'Be the first to sign this petition'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {petition.signatures.slice(0, 12).map((sig: any) => (
-              <div key={sig.id} className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium">
-                  {sig.user?.name?.[0] || '?'}
-                </div>
-                <div className="text-sm truncate">{sig.user?.name || 'Anonymous'}</div>
+          {petition.signatures.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>No signatures yet. Be the first to support this cause!</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Signature Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {petition.signatures.map((sig: any) => (
+                  <div key={sig.id} className="flex items-center gap-3 p-3 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="w-10 h-10 kairo-gradient rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                      {sig.user?.name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate">
+                        {sig.user?.name || 'Anonymous User'}
+                      </div>
+                      <div className="text-xs text-gray-600 flex items-center gap-2">
+                        <span>{sig.user?.city || 'Unknown'}, {sig.user?.state || 'Unknown'}</span>
+                        {sig.is_verified && (
+                          <CheckCircle className="w-3 h-3 text-green-600" />
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatDate(sig.signed_at)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              {/* Show count if there are more signatures */}
+              {petition.signatureCount > petition.signatures.length && (
+                <div className="text-center text-sm text-gray-600 pt-4 border-t">
+                  <p>
+                    Showing {petition.signatures.length} of {formatSignatureCount(petition.signatureCount)} signatures
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

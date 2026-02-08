@@ -50,7 +50,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
 # AI (from Step 4)
-GOOGLE_GEMINI_API_KEY=AIzaSy...
+GROQ_API_KEY=gsk_...
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -119,7 +119,7 @@ Open http://localhost:3000
 
 ### Issue: "AI not responding"
 **Fix:** 
-1. Check if Gemini API key is valid
+1. Check if Groq API key is valid (https://console.groq.com/)
 2. Make sure you have API quota remaining
 3. Check browser console for errors
 

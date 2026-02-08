@@ -22,7 +22,7 @@ KAIRO is a production-grade civic technology platform built with Next.js 14, ser
 - **Database:** Supabase (PostgreSQL with RLS)
 - **Authentication:** Firebase Phone OTP
 - **Storage:** Firebase Storage + Supabase Storage
-- **AI:** Google Gemini (Generative AI)
+- **AI:** Groq API (llama-3.3-70b-versatile)
 - **Email:** Mailto: protocol (user's email client)
 
 **Infrastructure:**
@@ -561,10 +561,19 @@ const { error } = await supabase
 
 **Example: Generate Petition**
 ```typescript
-const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-const prompt = constructPetitionPrompt(formData);
-const result = await model.generateContent(prompt);
-const petitionText = result.response.text();
+const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+  },
+  body: JSON.stringify({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: prompt }],
+  }),
+});
+const data = await response.json();
+const petitionText = data.choices[0].message.content;
 ```
 
 **Rate Limiting (To Implement):**
@@ -711,7 +720,7 @@ test('Send petition to authority', ...)
 ### Current Capacity
 - Supabase: 500MB database (free tier)
 - Firebase: 10K phone auths/month (free)
-- Gemini: 60 requests/minute (free)
+- Groq: 30 requests/minute (free tier)
 
 ### Scaling Triggers
 - 10K users → Upgrade Supabase

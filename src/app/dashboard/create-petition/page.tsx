@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FileText, Sparkles, MapPin, Upload, ArrowRight, ArrowLeft, Wand2, Edit3 } from 'lucide-react';
-import { generatePetition } from '@/lib/ai';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -71,16 +70,25 @@ export default function CreatePetitionPage() {
 
     setLoading(true);
     try {
-      const petition = await generatePetition({
-        category,
-        problemDescription,
-        personalImpact,
-        desiredChange,
-        location: `${user?.city}, ${user?.state}`,
-        language: user?.preferredLanguage || 'en',
+      const response = await fetch('/api/ai/generate-petition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category,
+          problemDescription,
+          personalImpact,
+          desiredChange,
+          location: `${user?.city}, ${user?.state}`,
+          language: user?.preferredLanguage || 'en',
+        }),
       });
 
-      setGeneratedPetition(petition);
+      if (!response.ok) {
+        throw new Error('Failed to generate petition');
+      }
+
+      const data = await response.json();
+      setGeneratedPetition(data.petition);
       setStep('review');
     } catch (error) {
       console.error('Error generating petition:', error);

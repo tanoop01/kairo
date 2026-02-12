@@ -12,6 +12,20 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
+  },
+  global: {
+    headers: {
+      'x-client-info': 'kairo-web-app'
+    }
+  },
+  db: {
+    schema: 'public'
+  },
+  // Performance optimizations
+  realtime: {
+    params: {
+      eventsPerSecond: 2 // Reduce realtime event frequency
+    }
   }
 });
 

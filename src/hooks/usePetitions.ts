@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Petition, PetitionCategory, PetitionStatus } from '@/types';
-import { usePetitionStore } from '@/store/petitionStore';
+import { cache, CACHE_KEYS } from '@/lib/cache';
 
 interface UsePetitionsOptions {
   category?: PetitionCategory;
@@ -9,26 +9,66 @@ interface UsePetitionsOptions {
   city?: string;
   state?: string;
   creatorId?: string;
+  limit?: number;
 }
 
 export function usePetitions(options: UsePetitionsOptions = {}) {
-  const { petitions, setPetitions, setLoading } = usePetitionStore();
+  // Use local state instead of shared store to prevent race conditions
+  const [petitions, setPetitions] = useState<Petition[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Memoize options to prevent unnecessary re-fetching
+  const optionsKey = JSON.stringify(options);
+  const prevOptionsKey = useRef<string>();
+
   useEffect(() => {
-    fetchPetitions();
-  }, [options.category, options.status, options.city, options.state, options.creatorId]);
+    if (prevOptionsKey.current !== optionsKey) {
+      prevOptionsKey.current = optionsKey;
+      fetchPetitions();
+    }
+  }, [optionsKey]);
 
   async function fetchPetitions() {
     setLoading(true);
     setError(null);
 
     try {
+      // Generate cache key based on query options
+      const cacheKey = `petitions:${optionsKey}`;
+      
+      // Try to get from cache first
+      const cachedData = cache.get<Petition[]>(cacheKey);
+      if (cachedData) {
+        setPetitions(cachedData);
+        setLoading(false);
+        return;
+      }
+
       let query = supabase
         .from('petitions')
         .select(`
-          *,
-          creator:users(*)
+          id,
+          title,
+          description,
+          category,
+          location_lat,
+          location_lng,
+          city,
+          state,
+          address,
+          pincode,
+          creator_id,
+          signature_count,
+          status,
+          created_at,
+          updated_at,
+          sent_to_authority,
+          sent_at,
+          response_received,
+          resolved_at,
+          language,
+          creator:users!creator_id(id, name, city, state, trust_score)
         `)
         .order('created_at', { ascending: false });
 
@@ -47,12 +87,19 @@ export function usePetitions(options: UsePetitionsOptions = {}) {
       if (options.creatorId) {
         query = query.eq('creator_id', options.creatorId);
       }
+      if (options.limit) {
+        query = query.limit(options.limit);
+      }
 
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
       const formattedPetitions: Petition[] = (data || []).map(mapPetitionFromDB);
+      
+      // Cache the results
+      cache.set(cacheKey, formattedPetitions);
+      
       setPetitions(formattedPetitions);
     } catch (err: any) {
       setError(err.message);
@@ -61,7 +108,7 @@ export function usePetitions(options: UsePetitionsOptions = {}) {
     }
   }
 
-  return { petitions, loading: usePetitionStore.getState().isLoading, error, refetch: fetchPetitions };
+  return { petitions, loading, error, refetch: fetchPetitions };
 }
 
 export function usePetition(id: string) {
@@ -122,29 +169,29 @@ function mapPetitionFromDB(data: any): Petition {
     creatorId: data.creator_id,
     creator: data.creator ? {
       id: data.creator.id,
-      phoneNumber: data.creator.phone_number,
+      phoneNumber: data.creator.phone_number || '',
       name: data.creator.name,
       city: data.creator.city,
       state: data.creator.state,
-      role: data.creator.role,
-      preferredLanguage: data.creator.preferred_language,
-      isVerified: data.creator.is_verified,
-      trustScore: data.creator.trust_score,
-      createdAt: new Date(data.creator.created_at),
-      updatedAt: new Date(data.creator.updated_at),
+      role: data.creator.role || 'citizen',
+      preferredLanguage: data.creator.preferred_language || 'en',
+      isVerified: data.creator.is_verified || false,
+      trustScore: data.creator.trust_score || 0,
+      createdAt: data.creator.created_at ? new Date(data.creator.created_at) : new Date(),
+      updatedAt: data.creator.updated_at ? new Date(data.creator.updated_at) : new Date(),
     } : {} as any,
     signatures: data.signatures || [],
-    signatureCount: data.signature_count,
+    signatureCount: data.signature_count || 0,
     evidence: data.evidence || [],
     targetAuthorities: data.petition_authorities?.map((pa: any) => pa.authority) || [],
     status: data.status,
     updates: data.petition_updates || [],
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
-    sentToAuthority: data.sent_to_authority,
+    sentToAuthority: data.sent_to_authority || false,
     sentAt: data.sent_at ? new Date(data.sent_at) : undefined,
-    responseReceived: data.response_received,
+    responseReceived: data.response_received || false,
     resolvedAt: data.resolved_at ? new Date(data.resolved_at) : undefined,
-    language: data.language,
+    language: data.language || 'en',
   };
 }

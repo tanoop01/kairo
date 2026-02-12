@@ -1,16 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Shield, FileText, Map, MessageSquare, LogOut, Plus, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
-import { usePetitions } from '@/hooks/usePetitions';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatSignatureCount, getCategoryDisplay, getStatusColor, getStatusDisplay } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 // DEV MODE: Must match login page and useAuth
 const DEV_MODE = true;
@@ -21,6 +19,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, initializing } = useAuth();
 
   useEffect(() => {
@@ -31,11 +30,9 @@ export default function DashboardLayout({
 
   const handleLogout = async () => {
     if (DEV_MODE) {
-      // Dev mode: Clear localStorage
       localStorage.removeItem('dev_firebase_uid');
       localStorage.removeItem('dev_phone_number');
     } else {
-      // Production: Sign out from Firebase
       await signOut(auth);
     }
     router.push('/');
@@ -43,67 +40,126 @@ export default function DashboardLayout({
 
   if (initializing || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kairo-orange" />
+      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-border-subtle border-t-accent" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white border-b sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <div className="w-10 h-10 kairo-gradient rounded-lg flex items-center justify-center">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold kairo-text-gradient">KAIRO</span>
-            </Link>
+    <div className="min-h-screen bg-bg-primary flex">
+      {/* Left Sidebar */}
+      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-bg-secondary border-r border-border-subtle flex flex-col z-50">
+        {/* Logo */}
+        <div className="p-6 border-b border-border-subtle">
+          <Link href="/dashboard" className="flex items-center space-x-2 group">
+            <div className="w-8 h-8 brand-gradient rounded-lg flex items-center justify-center transition-transform duration-150 group-hover:scale-105">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-semibold text-text-primary">KAIRO</span>
+          </Link>
+        </div>
 
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:block text-right">
-                <div className="font-medium">{user.name}</div>
-                <div className="text-sm text-gray-500">{user.city}, {user.state}</div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut className="w-5 h-5" />
-              </Button>
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1">
+          <NavLink 
+            href="/dashboard" 
+            icon={<TrendingUp className="w-5 h-5" />} 
+            label="Dashboard"
+            active={pathname === '/dashboard'}
+          />
+          <NavLink 
+            href="/dashboard/ai-assistant" 
+            icon={<MessageSquare className="w-5 h-5" />} 
+            label="AI Assistant"
+            active={pathname === '/dashboard/ai-assistant'}
+          />
+          <NavLink 
+            href="/dashboard/petitions" 
+            icon={<FileText className="w-5 h-5" />} 
+            label="My Petitions"
+            active={pathname === '/dashboard/petitions'}
+          />
+          <NavLink 
+            href="/dashboard/create-petition" 
+            icon={<Plus className="w-5 h-5" />} 
+            label="Create Petition"
+            active={pathname === '/dashboard/create-petition'}
+          />
+          <NavLink 
+            href="/dashboard/city-map" 
+            icon={<Map className="w-5 h-5" />} 
+            label="City Issues"
+            active={pathname === '/dashboard/city-map'}
+          />
+          <NavLink 
+            href="/dashboard/community" 
+            icon={<Users className="w-5 h-5" />} 
+            label="Community"
+            active={pathname === '/dashboard/community'}
+          />
+        </nav>
+
+        {/* User Section */}
+        <div className="p-4 border-t border-border-subtle">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-text-primary truncate">{user.name}</div>
+              <div className="text-xs text-text-muted truncate">{user.city}, {user.state}</div>
             </div>
           </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleLogout}
+            className="w-full justify-start text-text-muted hover:text-red-400"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
-      </nav>
+      </aside>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar */}
-          <aside className="w-full md:w-64 space-y-2">
-            <NavLink href="/dashboard" icon={<TrendingUp className="w-5 h-5" />} label="Dashboard" />
-            <NavLink href="/dashboard/ai-assistant" icon={<MessageSquare className="w-5 h-5" />} label="AI Rights Assistant" />
-            <NavLink href="/dashboard/petitions" icon={<FileText className="w-5 h-5" />} label="My Petitions" />
-            <NavLink href="/dashboard/create-petition" icon={<Plus className="w-5 h-5" />} label="Create Petition" />
-            <NavLink href="/dashboard/city-map" icon={<Map className="w-5 h-5" />} label="City Issues" />
-            <NavLink href="/dashboard/community" icon={<Users className="w-5 h-5" />} label="Community" />
-          </aside>
+      <main className="ml-64 flex-1">
+        {/* Top Header */}
+        <header className="sticky top-0 z-40 bg-bg-primary/80 backdrop-blur-sm border-b border-border-subtle">
+          <div className="px-8 py-4">
+            <div className="max-w-7xl mx-auto">
+              {/* Header content can be added here if needed */}
+            </div>
+          </div>
+        </header>
 
-          {/* Main Area */}
-          <main className="flex-1">
+        {/* Page Content */}
+        <div className="px-8 py-8">
+          <div className="max-w-7xl mx-auto">
             {children}
-          </main>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
-function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+function NavLink({ href, icon, label, active }: { 
+  href: string; 
+  icon: React.ReactNode; 
+  label: string;
+  active?: boolean;
+}) {
   return (
     <Link href={href}>
-      <div className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors">
-        <div className="text-gray-600">{icon}</div>
-        <span className="font-medium">{label}</span>
+      <div className={cn(
+        "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-150 text-sm font-medium",
+        active 
+          ? "bg-accent-light text-accent" 
+          : "text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+      )}>
+        {icon}
+        <span>{label}</span>
       </div>
     </Link>
   );

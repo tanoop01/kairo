@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Users, Target, TrendingUp } from 'lucide-react';
+import { SlideIn, StaggerContainer, StaggerItem } from '@/components/PageTransition';
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,67 +20,79 @@ export default function HomePage() {
 
   if (initializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kairo-orange" />
+      <div className="min-h-screen flex items-center justify-center bg-primary">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-orange-50">
+    <div className="min-h-screen bg-primary">
       {/* Hero Section */}
-      <nav className="container mx-auto px-4 py-6 flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <div className="w-10 h-10 kairo-gradient rounded-lg flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
+      <nav className="border-b border-subtle">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-semibold text-primary">KAIRO</span>
           </div>
-          <span className="text-2xl font-bold kairo-text-gradient">KAIRO</span>
+          <Link href="/auth/login">
+            <Button>Get Started</Button>
+          </Link>
         </div>
-        <Link href="/auth/login">
-          <Button variant="kairo">Get Started</Button>
-        </Link>
       </nav>
 
-      <div className="container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">
+      <div className="container mx-auto px-4 py-24">
+        <SlideIn direction="up" className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-semibold mb-6 text-primary">
             Converting Awareness into 
-            <span className="kairo-text-gradient"> Government Action</span>
+            <span className="text-accent"> Government Action</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-secondary mb-8 max-w-2xl mx-auto">
             India's first civic operating system that bridges citizens and government 
             accountability. Know your rights, raise your voice, and create real change.
           </p>
           <Link href="/auth/login">
-            <Button size="lg" variant="kairo" className="text-lg px-8">
-              Start Your Petition <ArrowRight className="ml-2 w-5 h-5" />
+            <Button size="lg" className="text-sm px-8">
+              Start Your Petition <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </Link>
-        </div>
+        </SlideIn>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-20">
-          <FeatureCard
-            icon={<Shield className="w-8 h-8" />}
-            title="Know Your Rights"
-            description="AI-powered legal assistant in your language"
-          />
-          <FeatureCard
-            icon={<Users className="w-8 h-8" />}
-            title="Build Community"
-            description="Connect with fellow citizens on local issues"
-          />
-          <FeatureCard
-            icon={<Target className="w-8 h-8" />}
-            title="Direct Authority"
-            description="Send petitions directly to decision-makers"
-          />
-          <FeatureCard
-            icon={<TrendingUp className="w-8 h-8" />}
-            title="Track Impact"
-            description="See real resolutions and outcomes"
-          />
-        </div>
+        <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-20">
+          <StaggerItem>
+            <FeatureCard
+              icon={<Shield className="w-5 h-5" />}
+              title="Know Your Rights"
+              description="AI-powered legal assistant in your language"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <FeatureCard
+              icon={<Users className="w-5 h-5" />}
+              title="Build Community"
+              description="Connect with fellow citizens on local issues"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <FeatureCard
+              icon={<Target className="w-5 h-5" />}
+              title="Direct Authority"
+              description="Send petitions directly to decision-makers"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <FeatureCard
+              icon={<TrendingUp className="w-5 h-5" />}
+              title="Track Impact"
+              description="See real resolutions and outcomes"
+            />
+          </StaggerItem>
+        </StaggerContainer>
 
         {/* Stats Section */}
         <div className="mt-20 grid md:grid-cols-3 gap-8 text-center">
@@ -90,7 +103,7 @@ export default function HomePage() {
 
         {/* How It Works */}
         <div className="mt-32">
-          <h2 className="text-4xl font-bold text-center mb-16">How KAIRO Works</h2>
+          <h2 className="text-3xl font-semibold text-center mb-12 text-primary">How KAIRO Works</h2>
           <div className="grid md:grid-cols-4 gap-6">
             <StepCard number={1} title="Verify Identity" description="Sign up with your phone number" />
             <StepCard number={2} title="Know Rights" description="Get legal guidance from AI assistant" />
@@ -100,13 +113,13 @@ export default function HomePage() {
         </div>
 
         {/* CTA Section */}
-        <div className="mt-32 kairo-gradient rounded-2xl p-12 text-center text-white">
-          <h2 className="text-4xl font-bold mb-4">Ready to Create Change?</h2>
-          <p className="text-xl mb-8 opacity-90">
+        <div className="mt-32 bg-secondary border border-subtle rounded-xl p-12 text-center">
+          <h2 className="text-3xl font-semibold mb-4 text-primary">Ready to Create Change?</h2>
+          <p className="text-lg mb-8 text-secondary">
             Join thousands of Indians taking civic action
           </p>
           <Link href="/auth/login">
-            <Button size="lg" variant="secondary" className="text-lg px-8">
+            <Button size="lg" className="text-sm px-8">
               Join KAIRO Today
             </Button>
           </Link>
@@ -114,8 +127,8 @@ export default function HomePage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t mt-20 py-8">
-        <div className="container mx-auto px-4 text-center text-gray-600">
+      <footer className="border-t border-subtle mt-20 py-8">
+        <div className="container mx-auto px-4 text-center text-muted">
           <p>&copy; 2026 KAIRO - India's Civic Operating System</p>
         </div>
       </footer>
@@ -125,31 +138,30 @@ export default function HomePage() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-      <div className="text-kairo-orange mb-4">{icon}</div>
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+    <div className="bg-secondary border border-subtle rounded-xl p-6">
+      <div className="text-accent mb-4">{icon}</div>
+      <h3 className="text-sm font-semibold mb-2 text-primary">{title}</h3>
+      <p className="text-xs text-secondary">{description}</p>
     </div>
   );
 }
 
 function StatCard({ number, label }: { number: string; label: string }) {
   return (
-    <div className="bg-white rounded-xl p-8 shadow-lg">
-      <div className="text-4xl font-bold kairo-text-gradient mb-2">{number}</div>
-      <div className="text-gray-600">{label}</div>
+    <div className="bg-secondary border border-subtle rounded-xl p-8">
+      <div className="text-3xl font-semibold text-accent mb-2">{number}</div>
+      <div className="text-sm text-secondary">{label}</div>
     </div>
   );
 }
 
 function StepCard({ number, title, description }: { number: number; title: string; description: string }) {
   return (
-    <div className="bg-white rounded-xl p-6 shadow-lg relative">
-      <div className="absolute -top-4 left-6 w-8 h-8 kairo-gradient rounded-full flex items-center justify-center text-white font-bold">
+    <div className="bg-secondary border border-subtle rounded-xl p-6 relative">
+      <div className="absolute -top-3 left-6 w-6 h-6 bg-accent rounded-full flex items-center justify-center text-white text-xs font-semibold">
         {number}
       </div>
-      <h3 className="text-lg font-semibold mt-4 mb-2">{title}</h3>
-      <p className="text-gray-600 text-sm">{description}</p>
+      <h3 className="text-sm font-semibold mt-4 mb-2 text-primary">{title}</h3>
+      <p className="text-xs text-secondary">{description}</p>
     </div>
-  );
-}
+  );}

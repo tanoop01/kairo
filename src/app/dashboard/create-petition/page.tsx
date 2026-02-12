@@ -38,6 +38,41 @@ export default function CreatePetitionPage() {
     longitude: 0,
     address: '',
   });
+  const [locationAutoFilled, setLocationAutoFilled] = useState(false);
+
+  // Load user's saved location when reaching location step
+  useEffect(() => {
+    if (step === 'location' && user?.id) {
+      loadUserLocation();
+    }
+  }, [step, user?.id]);
+
+  const loadUserLocation = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('location_lat, location_lng')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data.location_lat && data.location_lng) {
+        setLocation({
+          latitude: parseFloat(data.location_lat),
+          longitude: parseFloat(data.location_lng),
+          address: location.address, // Keep existing address if any
+        });
+        setLocationAutoFilled(true);
+        toast({
+          title: 'Location Auto-filled',
+          description: 'Using your saved location from profile',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user location:', error);
+    }
+  };
 
   // Pre-fill from AI Assistant if coming from there
   useEffect(() => {
@@ -683,6 +718,17 @@ export default function CreatePetitionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {locationAutoFilled && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700">
+                  <MapPin className="w-4 h-4" />
+                  <span className="text-sm font-medium">
+                    Location auto-filled from your profile. You can update it below if needed.
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="address">Address/Location</Label>
               <Textarea

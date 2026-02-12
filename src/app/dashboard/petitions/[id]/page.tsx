@@ -64,10 +64,19 @@ export default function PetitionDetailPage() {
 
     setSigning(true);
     try {
+      // Get user's saved location
+      const { data: userData } = await supabase
+        .from('users')
+        .select('location_lat, location_lng')
+        .eq('id', user.id)
+        .single();
+
       const { error } = await supabase.from('signatures').insert({
         petition_id: petition.id,
         user_id: user.id,
         is_verified: user.isVerified,
+        location_lat: userData?.location_lat || null,
+        location_lng: userData?.location_lng || null,
       });
 
       if (error) throw error;

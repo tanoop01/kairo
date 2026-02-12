@@ -1,0 +1,9 @@
+langgraph
+groq
+faiss-cpu
+numpy
+sentence-transformers
+PyPDF2
+fastapi 
+uvicorn
+duckduckgo-search 

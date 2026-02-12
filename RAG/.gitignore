@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.env
+.env.local
+
+# Vector index (if generated)
+vector.index
+*.index
+
+# Large data files (if needed)
+# data/
+
+# OS files
+Thumbs.db
+.DS_Store

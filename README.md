@@ -50,6 +50,10 @@ If an authority ignores the petition:
 * Suggests appropriate escalation paths.
 * Explains procedures such as complaints, appeals, or legal notices.
 
+### 5. Multilingual interface
+* Focuses on regional language dashboard for better experience.
+* Petition and assistance in your regional language.
+
 ---
 
 ## System Architecture

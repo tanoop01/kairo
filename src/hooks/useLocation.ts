@@ -153,13 +153,14 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
   district: string;
   country: string;
   address: string;
+  pincode: string;
 } | null> {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`,
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
       {
         headers: {
-          'User-Agent': 'KAIRO-Civic-Platform',
+          'User-Agent': 'PETICIA-Civic-Platform',
         },
       }
     );
@@ -170,6 +171,9 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
 
     const data = await response.json();
     const address = data.address || {};
+    
+    console.log('Reverse geocode response:', data);
+    console.log('Postcode from API:', address.postcode);
 
     // Extract city (try multiple fallbacks)
     const city =
@@ -209,6 +213,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
       district,
       country,
       address: addressParts.join(', ') || data.display_name || 'Unknown location',
+      pincode: address.postcode || '',
     };
   } catch (error) {
     console.error('Reverse geocoding failed:', error);

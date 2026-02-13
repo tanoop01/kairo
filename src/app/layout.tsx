@@ -3,11 +3,12 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { RouteLoadingWrapper } from "@/components/RouteLoadingWrapper";
+import { Analytics } from "@vercel/analytics/next"
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "KAIRO - India's Civic Action Platform",
+  title: "PETICIA - India's Civic Action Platform",
   description: "Converting citizen awareness into real government action and resolution",
   keywords: ["civic action", "India", "petitions", "government", "citizens rights"],
 };

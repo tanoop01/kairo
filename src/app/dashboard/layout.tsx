@@ -4,14 +4,14 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Shield, FileText, Map, MessageSquare, LogOut, Plus, TrendingUp, Users } from 'lucide-react';
+import { Shield, FileText, Map, MessageSquare, LogOut, Plus, TrendingUp, Users, User } from 'lucide-react';
 import Link from 'next/link';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 
 // DEV MODE: Must match login page and useAuth
-const DEV_MODE = true;
+const DEV_MODE = false;
 
 export default function DashboardLayout({
   children,
@@ -58,17 +58,29 @@ export default function DashboardLayout({
             <div className="w-8 h-8 brand-gradient rounded-lg flex items-center justify-center transition-transform duration-150 group-hover:scale-105">
               <Shield className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-semibold text-text-primary">KAIRO</span>
+            <span className="text-lg font-semibold text-text-primary">PETICIA</span>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-2">
           <NavLink 
             href="/dashboard" 
             icon={<TrendingUp className="w-5 h-5" />} 
             label="Dashboard"
             active={pathname === '/dashboard'}
+          />
+           <NavLink 
+            href="/dashboard/create-petition" 
+            icon={<Plus className="w-5 h-5" />} 
+            label="Create Petition"
+            active={pathname === '/dashboard/create-petition'}
+          />
+           <NavLink 
+            href="/dashboard/petitions" 
+            icon={<FileText className="w-5 h-5" />} 
+            label="My Petitions"
+            active={pathname === '/dashboard/petitions'}
           />
           <NavLink 
             href="/dashboard/ai-assistant" 
@@ -76,24 +88,14 @@ export default function DashboardLayout({
             label="AI Assistant"
             active={pathname === '/dashboard/ai-assistant'}
           />
-          <NavLink 
-            href="/dashboard/petitions" 
-            icon={<FileText className="w-5 h-5" />} 
-            label="My Petitions"
-            active={pathname === '/dashboard/petitions'}
-          />
-          <NavLink 
-            href="/dashboard/create-petition" 
-            icon={<Plus className="w-5 h-5" />} 
-            label="Create Petition"
-            active={pathname === '/dashboard/create-petition'}
-          />
-          <NavLink 
+         
+         
+          {/* <NavLink 
             href="/dashboard/city-map" 
             icon={<Map className="w-5 h-5" />} 
             label="City Issues"
             active={pathname === '/dashboard/city-map'}
-          />
+          /> */}
           <NavLink 
             href="/dashboard/community" 
             icon={<Users className="w-5 h-5" />} 
@@ -103,13 +105,26 @@ export default function DashboardLayout({
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-border-subtle">
+        <div className="p-4 border-t border-border-subtle space-y-2">
           <div className="flex items-center justify-between mb-3">
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-text-primary truncate">{user.name}</div>
               <div className="text-xs text-text-muted truncate">{user.city}, {user.state}</div>
             </div>
           </div>
+          <Link href="/dashboard/profile" className="block">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={cn(
+                "w-full justify-start text-text-muted hover:text-accent",
+                pathname === '/dashboard/profile' && "bg-accent-light text-accent"
+              )}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+          </Link>
           <Button 
             variant="ghost" 
             size="sm" 

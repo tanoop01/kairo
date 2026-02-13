@@ -14,6 +14,7 @@ import { usePetition } from '@/hooks/usePetitions';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { ShareModal } from '@/components/ShareModal';
 import { 
   formatDate, 
   formatSignatureCount, 
@@ -39,12 +40,18 @@ export default function PetitionDetailPage() {
   const [loadingAuthority, setLoadingAuthority] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     if (petition && user) {
       checkIfSigned();
     }
   }, [petition, user]);
+
+  const handleShare = async () => {
+    setShowShareModal(true);
+  };
 
   const checkIfSigned = async () => {
     if (!petition || !user) return;
@@ -71,15 +78,25 @@ export default function PetitionDetailPage() {
         .eq('id', user.id)
         .single();
 
-      const { error } = await supabase.from('signatures').insert({
-        petition_id: petition.id,
-        user_id: user.id,
-        is_verified: user.isVerified,
-        location_lat: userData?.location_lat || null,
-        location_lng: userData?.location_lng || null,
+      const response = await fetch('/api/signatures/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          petition_id: petition.id,
+          user_id: user.id,
+          is_verified: user.isVerified,
+          location_lat: userData?.location_lat || null,
+          location_lng: userData?.location_lng || null,
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to sign petition');
+      }
 
       toast({
         title: 'Petition Signed!',
@@ -197,14 +214,24 @@ export default function PetitionDetailPage() {
     if (!user || !petition || !updateContent.trim()) return;
 
     try {
-      const { error } = await supabase.from('petition_updates').insert({
-        petition_id: petition.id,
-        type: 'progress',
-        content: updateContent,
-        created_by: user.id,
+      const response = await fetch('/api/petition-updates/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          petition_id: petition.id,
+          type: 'progress',
+          content: updateContent,
+          created_by: user.id,
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to post update');
+      }
 
       toast({
         title: 'Update Posted',
@@ -214,11 +241,11 @@ export default function PetitionDetailPage() {
       setUpdateContent('');
       setShowUpdateForm(false);
       await refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting update:', error);
       toast({
         title: 'Error',
-        description: 'Failed to post update',
+        description: error.message || 'Failed to post update',
         variant: 'destructive',
       });
     }
@@ -256,6 +283,40 @@ export default function PetitionDetailPage() {
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleResolvePetition = async () => {
+    if (!user || !petition) return;
+
+    setResolving(true);
+    try {
+      const response = await fetch(`/api/petitions/${petition.id}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to resolve petition');
+      }
+
+      toast({
+        title: 'Petition Resolved',
+        description: 'Your petition has been marked as resolved',
+      });
+
+      await refetch();
+    } catch (error: any) {
+      console.error('Error resolving petition:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to resolve petition',
+        variant: 'destructive',
+      });
+    } finally {
+      setResolving(false);
     }
   };
 
@@ -320,7 +381,7 @@ export default function PetitionDetailPage() {
                 </div>
               </div>
             </div>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" onClick={handleShare} title="Share petition">
               <Share2 className="w-4 h-4" />
             </Button>
           </div>
@@ -332,7 +393,7 @@ export default function PetitionDetailPage() {
             </p>
           </div>
 
-          {!hasSigned && !isCreator && (
+          {!hasSigned && !isCreator && petition.status !== 'resolved' && (
             <div className="mt-8 pt-8 border-t">
               <Button
                 onClick={handleSign}
@@ -346,11 +407,21 @@ export default function PetitionDetailPage() {
             </div>
           )}
 
+          {petition.status === 'resolved' && !isCreator && (
+            <div className="mt-8 pt-8 border-t">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-sm text-emerald-800">
+                  This petition has been resolved and is no longer accepting signatures.
+                </p>
+              </div>
+            </div>
+          )}
+
           {hasSigned && !isCreator && (
             <div className="mt-8 pt-8 border-t">
-              <div className="flex items-center gap-2 text-green-600">
+              <div className="flex items-center gap-2 text-success">
                 <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">You've signed this petition</span>
+                <span className="font-medium text-lg">Signed</span>
               </div>
             </div>
           )}
@@ -358,28 +429,41 @@ export default function PetitionDetailPage() {
           {isCreator && (
             <div className="mt-8 pt-8 border-t space-y-4">
               <div className="flex gap-4 flex-wrap">
-                {!petition.sentToAuthority && petition.signatureCount >= 10 && (
+                {petition.status !== 'resolved' && (
                   <>
-                    {!suggestedAuthority ? (
-                      <Button
-                        onClick={handleGetAuthoritySuggestion}
-                        disabled={loadingAuthority}
-                        variant="outline"
-                      >
-                        {loadingAuthority ? 'Finding Authority...' : 'Find Right Authority'}
-                      </Button>
-                    ) : (
-                      <Button onClick={handleSendToAuthority} variant="kairo">
-                        <Mail className="w-4 h-4 mr-2" />
-                        Send to Authority
-                      </Button>
+                    {!petition.sentToAuthority && petition.signatureCount >= 10 && (
+                      <>
+                        {!suggestedAuthority ? (
+                          <Button
+                            onClick={handleGetAuthoritySuggestion}
+                            disabled={loadingAuthority}
+                            variant="outline"
+                          >
+                            {loadingAuthority ? 'Finding Authority...' : 'Find Right Authority'}
+                          </Button>
+                        ) : (
+                          <Button onClick={handleSendToAuthority} variant="kairo">
+                            <Mail className="w-4 h-4 mr-2" />
+                            Send to Authority
+                          </Button>
+                        )}
+                      </>
                     )}
+                    <Button onClick={() => setShowUpdateForm(!showUpdateForm)} variant="outline">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Post Update
+                    </Button>
+                    <Button 
+                      onClick={handleResolvePetition}
+                      disabled={resolving}
+                      variant="outline"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {resolving ? 'Resolving...' : 'Mark as Resolved'}
+                    </Button>
                   </>
                 )}
-                <Button onClick={() => setShowUpdateForm(!showUpdateForm)} variant="outline">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Post Update
-                </Button>
                 <Button 
                   onClick={() => setShowDeleteConfirm(true)} 
                   variant="outline"
@@ -463,6 +547,26 @@ export default function PetitionDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Resolved Banner */}
+      {petition.status === 'resolved' && (
+        <Card className="border-2 border-emerald-600 bg-emerald-950/30">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-emerald-100">Petition Resolved</h3>
+                <p className="text-sm text-emerald-200">
+                  This petition has been successfully resolved by the creator.
+                  {petition.resolvedAt && ` Resolved on ${formatDate(petition.resolvedAt)}.`}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Creator Info */}
       <Card>
@@ -569,6 +673,16 @@ export default function PetitionDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Share Modal */}
+      {petition && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title={petition.title}
+          shareUrl={`${window.location.origin}/dashboard/community/${petition.id}`}
+        />
+      )}
     </div>
   );
 }

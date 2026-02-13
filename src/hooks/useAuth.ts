@@ -7,7 +7,7 @@ import { User } from '@/types';
 import { cache, CACHE_KEYS } from '@/lib/cache';
 
 // DEV MODE: Must match login page
-const DEV_MODE = true;
+const DEV_MODE = false;
 
 export function useAuth() {
   const { user, setUser, setLoading } = useAuthStore();

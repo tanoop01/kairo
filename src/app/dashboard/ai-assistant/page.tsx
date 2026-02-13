@@ -42,12 +42,23 @@ export default function AIAssistantPage() {
       setResponse(aiResponse);
 
       // Save to database
-      await supabase.from('ai_queries').insert({
-        user_id: user.id,
-        query,
-        language: user.preferredLanguage,
-        response: aiResponse,
-      });
+      try {
+        await fetch('/api/ai-queries/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            query,
+            language: user.preferredLanguage,
+            response: aiResponse,
+          }),
+        });
+      } catch (dbError) {
+        // Log error but don't break user experience
+        console.error('Failed to save query to database:', dbError);
+      }
     } catch (error) {
       console.error('Error getting AI response:', error);
       setResponse('Sorry, I encountered an error. Please try again.');
@@ -151,7 +162,7 @@ export default function AIAssistantPage() {
                 <button
                   key={i}
                   onClick={() => setQuery(q)}
-                  className="text-left p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-left p-3 bg-bg-secondary border border-border-subtle rounded-lg hover:border-border-strong transition-colors text-text-primary"
                 >
                   <MessageSquare className="w-4 h-4 text-kairo-orange mb-2" />
                   <p className="text-sm">{q}</p>

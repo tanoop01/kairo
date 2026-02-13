@@ -79,10 +79,10 @@ export function usePetitions(options: UsePetitionsOptions = {}) {
         query = query.eq('status', options.status);
       }
       if (options.city) {
-        query = query.eq('city', options.city);
+        query = query.ilike('city', options.city);
       }
       if (options.state) {
-        query = query.eq('state', options.state);
+        query = query.ilike('state', options.state);
       }
       if (options.creatorId) {
         query = query.eq('creator_id', options.creatorId);

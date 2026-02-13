@@ -8,15 +8,16 @@ import { Button } from '@/components/ui/button';
 import { FileText, Users, TrendingUp, CheckCircle, Plus, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { formatSignatureCount, getCategoryDisplay, getStatusColor, getStatusDisplay, formatRelativeTime } from '@/lib/utils';
-import { LocationSettings } from '@/components/LocationSettings';
 import { SlideIn, StaggerContainer, StaggerItem } from '@/components/PageTransition';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   // Only fetch user's petitions
   const { petitions: myPetitions, loading: myLoading } = usePetitions({ creatorId: user?.id });
-  // Only fetch city petitions with a direct query instead of fetching all petitions
-  const { petitions: cityPetitions, loading: cityLoading } = usePetitions({ city: user?.city });
+  // Fetch city petitions with city filter if user has city set
+  const { petitions: cityPetitions, loading: cityLoading } = usePetitions(
+    user?.city ? { city: user.city } : { state: user?.state }
+  );
 
   // Memoize calculations to prevent recalculation on every render
   const stats = useMemo(() => {
@@ -92,21 +93,25 @@ export default function DashboardPage() {
           href="/dashboard/ai-assistant"
         />
         <QuickActionCard
+          title="Create Petitions"
+          description="AI assisted petition writing "
+          icon={<FileText className="w-5 h-5" />}
+          href="/dashboard/community"
+        />
+        {/* <QuickActionCard
           title="City Issues Map"
           description="See what's happening locally"
           icon={<FileText className="w-5 h-5" />}
           href="/dashboard/city-map"
-        />
+        /> */}
         <QuickActionCard
           title="Browse Petitions"
           description="Support community causes"
           icon={<FileText className="w-5 h-5" />}
           href="/dashboard/community"
         />
+        
       </div>
-
-      {/* Location Settings */}
-      <LocationSettings />
 
       {/* My Petitions */}
       <Card>
@@ -168,7 +173,7 @@ export default function DashboardPage() {
       {/* Trending Petitions */}
       <Card>
         <CardHeader>
-          <CardTitle>Trending in {user?.city}</CardTitle>
+          <CardTitle>Trending in {user?.city || user?.state || 'your area'}</CardTitle>
           <CardDescription>Popular petitions in your area</CardDescription>
         </CardHeader>
         <CardContent>
@@ -176,7 +181,7 @@ export default function DashboardPage() {
             <div className="text-center py-8 text-secondary">Loading...</div>
           ) : filteredCityPetitions.length === 0 ? (
             <div className="text-center py-8 text-secondary">
-              No petitions in your city yet
+              No petitions in your area yet
             </div>
           ) : (
             <div className="space-y-3">

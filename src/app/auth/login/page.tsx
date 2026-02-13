@@ -13,8 +13,19 @@ import { Shield, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
-// DEV MODE: Bypass Firebase OTP for testing
-const DEV_MODE = true;
+// PHONE AUTH CONFIGURATION
+// ⚠️ Firebase blocks real SMS on localhost - this is expected behavior
+// 
+// LOCAL DEVELOPMENT (localhost):
+//   - Use Firebase test numbers: +91 83189 15519 → OTP: 123456
+//   - Configure test numbers in Firebase Console → Authentication → Phone
+//
+// PRODUCTION (deployed domain):
+//   - Real SMS works automatically
+//   - Add your domain to Firebase Console → Settings → Authorized domains
+//
+// DEV_MODE is for legacy bypass, keep it disabled (false)
+const DEV_MODE = false;
 const DEV_OTP = '241240';
 
 export default function LoginPage() {
@@ -39,9 +50,35 @@ export default function LoginPage() {
     if (!(window as any).recaptchaVerifier) {
       (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
-        callback: () => {},
+        callback: (response: any) => {
+          console.log('[reCAPTCHA] Verified automatically');
+        },
+        'expired-callback': () => {
+          console.log('[reCAPTCHA] Expired - will retry');
+          // Clear and retry
+          if ((window as any).recaptchaVerifier) {
+            try {
+              (window as any).recaptchaVerifier.clear();
+            } catch (e) {}
+            (window as any).recaptchaVerifier = null;
+          }
+        },
+        'error-callback': (error: any) => {
+          console.error('[reCAPTCHA] Error:', error);
+        }
       });
+      
+      // Render immediately to improve success rate
+      try {
+        (window as any).recaptchaVerifier.render().then((widgetId: any) => {
+          (window as any).recaptchaWidgetId = widgetId;
+          console.log('[reCAPTCHA] Rendered and ready');
+        });
+      } catch (e) {
+        console.log('[reCAPTCHA] Render will happen on demand');
+      }
     }
+    return (window as any).recaptchaVerifier;
   };
 
   const sendOTP = async () => {
@@ -58,17 +95,38 @@ export default function LoginPage() {
     try {
       if (DEV_MODE) {
         // Dev mode: Skip Firebase and proceed to OTP step
+        console.log('[DEV MODE] Phone number:', phoneNumber);
         setStep('otp');
         toast({
           title: 'OTP Sent',
           description: 'Please check your phone for the verification code',
         });
       } else {
-        setupRecaptcha();
-        const appVerifier = (window as any).recaptchaVerifier;
+        console.log('[Firebase Auth] Starting phone authentication...');
+        console.log('[Firebase Auth] Phone number:', phoneNumber);
+        
+        // Clear any existing reCAPTCHA
+        if ((window as any).recaptchaVerifier) {
+          try {
+            (window as any).recaptchaVerifier.clear();
+          } catch (e) {
+            console.log('[Firebase Auth] Error clearing reCAPTCHA:', e);
+          }
+          (window as any).recaptchaVerifier = null;
+        }
+
+        console.log('[Firebase Auth] Setting up reCAPTCHA...');
+        const appVerifier = setupRecaptcha();
         const formattedPhone = `+91${phoneNumber}`;
         
+        console.log('[Firebase Auth] Formatted phone:', formattedPhone);
+        console.log('[Firebase Auth] Sending OTP request to Firebase...');
+        
         const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+        
+        console.log('[Firebase Auth] OTP sent successfully!');
+        console.log('[Firebase Auth] Confirmation result:', result);
+        
         setConfirmationResult(result);
         setStep('otp');
         
@@ -78,10 +136,33 @@ export default function LoginPage() {
         });
       }
     } catch (error: any) {
-      console.error('Error sending OTP:', error);
+      console.error('[Firebase Auth] Error sending OTP:', error);
+      console.error('[Firebase Auth] Error code:', error.code);
+      console.error('[Firebase Auth] Error message:', error.message);
+      
+      // Clear reCAPTCHA on error
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch (e) {
+          console.log('[Firebase Auth] Error clearing reCAPTCHA after failure:', e);
+        }
+        (window as any).recaptchaVerifier = null;
+      }
+      
+      let errorMessage = 'Failed to send OTP. Please try again.';
+      
+      if (error.code === 'auth/invalid-phone-number') {
+        errorMessage = 'Invalid phone number format';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many requests. Please try again later.';
+      } else if (error.code === 'auth/invalid-app-credential') {
+        errorMessage = 'reCAPTCHA verification failed. Please refresh and try again.';
+      }
+      
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send OTP. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -95,6 +176,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (DEV_MODE) {
+        console.log('[DEV MODE] Verifying OTP...');
+        console.log('[DEV MODE] Entered OTP:', otp);
+        console.log('[DEV MODE] Expected OTP:', DEV_OTP);
+        
         // Dev mode: Check hardcoded OTP
         if (otp !== DEV_OTP) {
           toast({
@@ -128,10 +213,29 @@ export default function LoginPage() {
           setStep('profile');
         }
       } else {
-        if (!confirmationResult) return;
+        console.log('[Firebase Auth] Verifying OTP...');
+        console.log('[Firebase Auth] Entered OTP:', otp);
+        console.log('[Firebase Auth] Confirmation result exists:', !!confirmationResult);
         
+        if (!confirmationResult) {
+          console.error('[Firebase Auth] No confirmation result found!');
+          toast({
+            title: 'Error',
+            description: 'Session expired. Please request OTP again.',
+            variant: 'destructive',
+          });
+          setStep('phone');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('[Firebase Auth] Confirming OTP with Firebase...');
         const result = await confirmationResult.confirm(otp);
         const user = result.user;
+        
+        console.log('[Firebase Auth] OTP verified successfully!');
+        console.log('[Firebase Auth] User UID:', user.uid);
+        console.log('[Firebase Auth] User phone:', user.phoneNumber);
 
         // Check if user exists in our database
         const { data: existingUser } = await supabase
@@ -140,11 +244,15 @@ export default function LoginPage() {
           .eq('firebase_uid', user.uid)
           .single();
 
+        console.log('[Firebase Auth] Existing user found:', !!existingUser);
+
         if (existingUser) {
           // User exists, redirect to dashboard
+          console.log('[Firebase Auth] Redirecting to dashboard...');
           router.push('/dashboard');
         } else {
           // New user, show profile form
+          console.log('[Firebase Auth] New user, showing profile form...');
           setStep('profile');
         }
       }
@@ -202,7 +310,7 @@ export default function LoginPage() {
       if (error) throw error;
 
       toast({
-        title: 'Welcome to KAIRO!',
+        title: 'Welcome to PETICIA!',
         description: 'Your profile has been created successfully',
       });
 
@@ -220,23 +328,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4">
       <div id="recaptcha-container" />
       
       <div className="w-full max-w-md">
-        <Link href="/" className="flex items-center justify-center mb-8 text-gray-600 hover:text-gray-900">
+        <Link href="/" className="flex items-center justify-center mb-8 text-text-secondary hover:text-text-primary transition-colors duration-200">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Link>
 
-        <Card>
+        <Card className="shadow-2xl">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 kairo-gradient rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent-hover rounded-2xl flex items-center justify-center shadow-lg shadow-accent/30">
                 <Shield className="w-10 h-10 text-white" />
               </div>
             </div>
-            <CardTitle className="text-2xl">Welcome to KAIRO</CardTitle>
+            <CardTitle className="text-2xl">Welcome to PETICIA</CardTitle>
             <CardDescription>
               {step === 'phone' && 'Sign in with your phone number'}
               {step === 'otp' && 'Enter the verification code'}
@@ -250,21 +358,25 @@ export default function LoginPage() {
                 <div>
                   <Label htmlFor="phone">Phone Number</Label>
                   <div className="flex mt-2">
-                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
+                    <span className="inline-flex items-center px-3 rounded-l-lg border-2 border-r-0 border-border-strong bg-bg-tertiary text-text-secondary">
                       +91
                     </span>
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="9876543210"
+                      placeholder="Enter 10 digit mobile number"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      className="rounded-l-none"
+                      className="rounded-l-none border-l-0 bg-bg-secondary !outline-none !ring-0 !shadow-none focus:!outline-none focus:!ring-0 focus:!shadow-none focus:!border-border-strong focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!shadow-none focus-visible:!border-border-strong autofill:bg-bg-secondary "
                       maxLength={10}
+                      style={{
+                        WebkitBoxShadow: '0 0 0 1000px #141B26 inset',
+                        WebkitTextFillColor: '#F1F5F9'
+                      }}
                     />
                   </div>
                 </div>
-                <Button onClick={sendOTP} disabled={loading} className="w-full" variant="kairo">
+                <Button onClick={sendOTP} disabled={loading} className="w-full">
                   {loading ? 'Sending...' : 'Send OTP'}
                 </Button>
               </div>
@@ -281,10 +393,14 @@ export default function LoginPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     maxLength={6}
-                    className="mt-2"
+                    className="mt-2 bg-bg-secondary !outline-none !ring-0 !shadow-none focus:!outline-none focus:!ring-0 focus:!shadow-none focus:!border-border-strong focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!shadow-none focus-visible:!border-border-strong"
+                    style={{
+                      WebkitBoxShadow: '0 0 0 1000px #141B26 inset',
+                      WebkitTextFillColor: '#F1F5F9'
+                    }}
                   />
                 </div>
-                <Button onClick={verifyOTP} disabled={loading} className="w-full" variant="kairo">
+                <Button onClick={verifyOTP} disabled={loading} className="w-full">
                   {loading ? 'Verifying...' : 'Verify OTP'}
                 </Button>
                 <Button variant="ghost" onClick={() => setStep('phone')} className="w-full">
@@ -301,7 +417,7 @@ export default function LoginPage() {
                     id="name"
                     value={profileData.name}
                     onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                    className="mt-2"
+                    className="mt-2 bg-bg-secondary"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -311,7 +427,7 @@ export default function LoginPage() {
                       id="city"
                       value={profileData.city}
                       onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
-                      className="mt-2"
+                      className="mt-2 bg-bg-secondary"
                     />
                   </div>
                   <div>
@@ -320,7 +436,7 @@ export default function LoginPage() {
                       id="state"
                       value={profileData.state}
                       onChange={(e) => setProfileData({ ...profileData, state: e.target.value })}
-                      className="mt-2"
+                      className="mt-2 bg-bg-secondary"
                     />
                   </div>
                 </div>
@@ -330,7 +446,7 @@ export default function LoginPage() {
                     id="role"
                     value={profileData.role}
                     onChange={(e) => setProfileData({ ...profileData, role: e.target.value as any })}
-                    className="w-full mt-2 h-10 rounded-md border border-input bg-background px-3"
+                    className="w-full mt-2 h-10 rounded-lg border-2 border-border-strong bg-bg-secondary px-3 text-text-primary focus:outline-none focus:ring-0 focus:shadow-none focus:border-border-strong transition-all duration-200"
                   >
                     <option value="student">Student</option>
                     <option value="worker">Worker</option>
@@ -346,7 +462,7 @@ export default function LoginPage() {
                     id="language"
                     value={profileData.preferredLanguage}
                     onChange={(e) => setProfileData({ ...profileData, preferredLanguage: e.target.value as any })}
-                    className="w-full mt-2 h-10 rounded-md border border-input bg-background px-3"
+                    className="w-full mt-2 h-10 rounded-lg border-2 border-border-strong bg-bg-secondary px-3 text-text-primary focus:outline-none focus:ring-0 focus:shadow-none focus:border-border-strong transition-all duration-200"
                   >
                     <option value="en">English</option>
                     <option value="hi">हिंदी (Hindi)</option>
@@ -356,7 +472,7 @@ export default function LoginPage() {
                     <option value="mr">मराठी (Marathi)</option>
                   </select>
                 </div>
-                <Button onClick={createProfile} disabled={loading} className="w-full" variant="kairo">
+                <Button onClick={createProfile} disabled={loading} className="w-full">
                   {loading ? 'Creating Profile...' : 'Complete Profile'}
                 </Button>
               </div>

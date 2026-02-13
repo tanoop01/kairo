@@ -19,26 +19,56 @@ const config = {
     },
     extend: {
       colors: {
-        // Modern SaaS Design System
-        'bg-primary': '#0B0F14',
-        'bg-secondary': '#111827',
-        'bg-tertiary': '#1F2937',
+        // Enhanced Dark Theme with Better Contrast
+        'bg-primary': '#0A0E13',
+        'bg-secondary': '#141B26',
+        'bg-tertiary': '#1A2332',
         
-        'surface-card': '#111827',
+        'surface-card': '#141B26',
         'surface-hover': '#1F2937',
         
-        'border-subtle': 'rgba(255, 255, 255, 0.06)',
-        'border-strong': 'rgba(255, 255, 255, 0.12)',
+        'border-subtle': 'rgba(148, 163, 184, 0.1)',
+        'border-strong': 'rgba(148, 163, 184, 0.2)',
         
-        'text-primary': '#F9FAFB',
-        'text-secondary': '#9CA3AF',
-        'text-muted': '#6B7280',
+        'text-primary': '#F1F5F9',
+        'text-secondary': '#94A3B8',
+        'text-muted': '#64748B',
         
-        // Single accent color - Indigo
+        // Vibrant Accent Colors
         accent: {
-          DEFAULT: '#6366F1',
-          hover: '#5558E3',
-          light: 'rgba(99, 102, 241, 0.1)',
+          DEFAULT: '#3B82F6',
+          hover: '#2563EB',
+          light: 'rgba(59, 130, 246, 0.15)',
+          dark: '#1E3A8A',
+        },
+        
+        // Status Colors
+        success: {
+          DEFAULT: '#10B981',
+          hover: '#059669',
+          light: 'rgba(16, 185, 129, 0.15)',
+          dark: '#065F46',
+        },
+        
+        warning: {
+          DEFAULT: '#F59E0B',
+          hover: '#D97706',
+          light: 'rgba(245, 158, 11, 0.15)',
+          dark: '#92400E',
+        },
+        
+        error: {
+          DEFAULT: '#EF4444',
+          hover: '#DC2626',
+          light: 'rgba(239, 68, 68, 0.15)',
+          dark: '#991B1B',
+        },
+        
+        info: {
+          DEFAULT: '#06B6D4',
+          hover: '#0891B2',
+          light: 'rgba(6, 182, 212, 0.15)',
+          dark: '#164E63',
         },
         
         // Legacy support (backward compatible)
@@ -71,12 +101,14 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // KAIRO Brand Colors (kept for brand assets)
+        // KAIRO Brand Colors - Enhanced
         kairo: {
           orange: "#FF6B35",
-          blue: "#004E89",
-          green: "#00A878",
-          yellow: "#FFB627",
+          blue: "#3B82F6",
+          green: "#10B981",
+          yellow: "#F59E0B",
+          purple: "#8B5CF6",
+          pink: "#EC4899",
         }
       },
       borderRadius: {

@@ -53,8 +53,8 @@ export default function CommunityPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2">Community Petitions</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold mb-2 text-text-primary">Community Petitions</h1>
+        <p className="text-text-secondary">
           Discover and support petitions from across India
         </p>
       </div>
@@ -85,7 +85,7 @@ export default function CommunityPage() {
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
               <Input
                 placeholder="Search petitions..."
                 value={searchQuery}
@@ -96,7 +96,7 @@ export default function CommunityPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as any)}
-              className="h-10 rounded-md border border-input bg-background px-3 md:w-48"
+              className="h-10 rounded-md border-2 border-border-strong bg-bg-secondary px-3 text-text-primary md:w-48 focus:outline-none focus:ring-0 focus:shadow-none focus:border-border-strong"
             >
               {categories.map((cat) => (
                 <option key={cat.value} value={cat.value}>
@@ -122,14 +122,14 @@ export default function CommunityPage() {
             <div className="space-y-3">
               {localPetitions.slice(0, 3).map((petition) => (
                 <Link key={petition.id} href={`/dashboard/community/${petition.id}`}>
-                  <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="p-4 bg-bg-secondary border border-border-subtle rounded-lg hover:border-border-strong transition-colors duration-200">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-semibold mb-1">{petition.title}</h3>
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-1">
+                        <h3 className="font-semibold mb-1 text-text-primary">{petition.title}</h3>
+                        <p className="text-sm text-text-secondary mb-2 line-clamp-1">
                           {petition.description}
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 text-xs text-text-muted">
                           <span className="font-medium text-kairo-orange">
                             {formatSignatureCount(petition.signatureCount)} signatures
                           </span>
@@ -160,31 +160,31 @@ export default function CommunityPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kairo-orange mx-auto" />
             </div>
           ) : filteredPetitions.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-text-muted">
               No petitions found matching your criteria
             </div>
           ) : (
             <div className="space-y-4">
               {filteredPetitions.map((petition) => (
                 <Link key={petition.id} href={`/dashboard/community/${petition.id}`}>
-                  <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="bg-bg-secondary border border-border-subtle rounded-lg p-4 hover:border-border-strong transition-colors duration-200">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(petition.status)}`}>
                             {getStatusDisplay(petition.status)}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-text-muted">
                             {getCategoryDisplay(petition.category)}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-lg mb-1">{petition.title}</h3>
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        <h3 className="font-semibold text-lg mb-1 text-text-primary">{petition.title}</h3>
+                        <p className="text-sm text-text-secondary mb-3 line-clamp-2">
                           {petition.description}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6 text-sm text-gray-500">
+                    <div className="flex items-center gap-6 text-sm text-text-muted">
                       <div className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
                         <span className="font-semibold text-kairo-orange">
@@ -217,8 +217,8 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-600 mb-1">{label}</p>
-            <p className="text-3xl font-bold">{value}</p>
+            <p className="text-sm text-text-secondary mb-1">{label}</p>
+            <p className="text-3xl font-bold text-text-primary">{value}</p>
           </div>
           <div className="opacity-75">{icon}</div>
         </div>

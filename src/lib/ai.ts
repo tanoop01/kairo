@@ -193,10 +193,11 @@ async function searchLegalDocuments(
       // Check for common errors
       if (error.message?.includes('function') && error.message?.includes('does not exist')) {
         console.error('[RAG] ❌ ERROR: The search_legal_documents function does not exist in Supabase!');
-        console.error('[RAG] → You need to run the SQL schema first:');
-        console.error('[RAG] → 1. Go to https://supabase.com/dashboard');
-        console.error('[RAG] → 2. Open SQL Editor');
-        console.error('[RAG] → 3. Copy and run c:\\Web Development\\Projects\\MyKairo\\supabase-rag-schema.sql');
+        console.error('[RAG] → You need to apply database migrations:');
+        console.error('[RAG] → 1. Install Supabase CLI: npm install -g supabase');
+        console.error('[RAG] → 2. Start local Supabase: supabase start');
+        console.error('[RAG] → 3. Apply migrations: supabase db reset');
+        console.error('[RAG] → Or deploy to remote: supabase db push');
       }
       
       return [];
@@ -295,7 +296,7 @@ export async function getAIRightsGuidance(request: AIRightsRequest) {
 
     // Step 2: Generate response using ONLY the retrieved documents
     console.log('[RAG] Step 2: Calling Groq AI...');
-    const prompt = `You are KAIRO, a legal rights explanation assistant for India.
+    const prompt = `You are PETICIA, a legal rights explanation assistant for India.
 
 ROLE AND LIMITATIONS
 - You are NOT a lawyer.

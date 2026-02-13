@@ -51,17 +51,28 @@ export default function CreatePetitionPage() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('location_lat, location_lng')
+        .select('location_lat, location_lng, location_address, location_district, location_city, location_state, location_country')
         .eq('id', user?.id)
         .single();
 
       if (error) throw error;
 
       if (data.location_lat && data.location_lng) {
+        // Build address string from profile data
+        const addressParts = [
+          data.location_address,
+          data.location_district,
+          data.location_city,
+          data.location_state,
+          data.location_country
+        ].filter(Boolean);
+        
+        const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : '';
+
         setLocation({
           latitude: parseFloat(data.location_lat),
           longitude: parseFloat(data.location_lng),
-          address: location.address, // Keep existing address if any
+          address: fullAddress,
         });
         setLocationAutoFilled(true);
         toast({
@@ -137,19 +148,65 @@ export default function CreatePetitionPage() {
     }
   };
 
-  const handleGetLocation = () => {
+  const handleGetLocation = async () => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            address: location.address,
-          });
-          toast({
-            title: 'Location captured',
-            description: 'Your location has been added to the petition',
-          });
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Try to get address from coordinates using reverse geocoding
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+              {
+                headers: {
+                  'User-Agent': 'PETICIA Petition Platform',
+                },
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              const address = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+              
+              setLocation({
+                latitude: lat,
+                longitude: lng,
+                address: address,
+              });
+              
+              toast({
+                title: 'Location captured',
+                description: 'Your location has been added to the petition',
+              });
+            } else {
+              // Fallback: use coordinates as address
+              setLocation({
+                latitude: lat,
+                longitude: lng,
+                address: `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+              });
+              
+              toast({
+                title: 'Location captured',
+                description: 'Coordinates captured. Please add a description of the location.',
+              });
+            }
+          } catch (error) {
+            console.error('Error getting address:', error);
+            // Fallback: use coordinates as address
+            setLocation({
+              latitude: lat,
+              longitude: lng,
+              address: `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+            });
+            
+            toast({
+              title: 'Location captured',
+              description: 'Coordinates captured. Please add a description of the location.',
+            });
+          }
         },
         (error) => {
           console.error('Error getting location:', error);
@@ -175,9 +232,12 @@ export default function CreatePetitionPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('petitions')
-        .insert({
+      const response = await fetch('/api/petitions/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           title,
           description: generatedPetition,
           category,
@@ -189,23 +249,26 @@ export default function CreatePetitionPage() {
           creator_id: user.id,
           status: 'active',
           language: user.preferredLanguage,
-        })
-        .select()
-        .single();
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create petition');
+      }
 
       toast({
         title: 'Petition Created!',
         description: 'Your petition is now live and collecting signatures',
       });
 
-      router.push(`/dashboard/petitions/${data.id}`);
+      router.push(`/dashboard/petitions/${result.data.id}`);
     } catch (error: any) {
       console.error('Error creating petition:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create petition. Please try again.',
+        description: error.message || 'Failed to create petition. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -267,9 +330,9 @@ export default function CreatePetitionPage() {
       {step === 'choice' && (
         <div className="grid md:grid-cols-2 gap-6">
           {/* AI Generation Option */}
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-kairo-orange" onClick={() => handleModeSelection('ai')}>
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-green-500" onClick={() => handleModeSelection('ai')}>
             <CardHeader>
-              <div className="w-12 h-12 kairo-gradient rounded-lg flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mb-4">
                 <Wand2 className="w-6 h-6 text-white" />
               </div>
               <CardTitle>Generate with AI</CardTitle>
@@ -296,7 +359,7 @@ export default function CreatePetitionPage() {
                   <span>Edit before publishing</span>
                 </li>
               </ul>
-              <Button variant="kairo" className="w-full mt-6">
+              <Button variant="outline" className="w-full mt-6 hover:border-green-500">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Use AI Assistant
               </Button>
@@ -333,7 +396,7 @@ export default function CreatePetitionPage() {
                   <span>Best for experienced writers</span>
                 </li>
               </ul>
-              <Button variant="outline" className="w-full mt-6">
+              <Button variant="outline" className="w-full mt-6 hover:border-blue-500">
                 <FileText className="w-4 h-4 mr-2" />
                 Write Myself
               </Button>
@@ -560,143 +623,25 @@ export default function CreatePetitionPage() {
                 Back
               </Button>
               <Button
-                onClick={() => setStep('location')}
-                variant="kairo"
-                className="flex-1"
-              >
-                Continue
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 3: Location */}
-      {step === 'location' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Petition Details</CardTitle>
-            <CardDescription>
-              Provide information about the issue you want to address
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <Label htmlFor="category">Category *</Label>
-              <select
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value as PetitionCategory)}
-                className="w-full mt-2 h-10 rounded-md border border-input bg-background px-3"
-              >
-                {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <Label htmlFor="problem">What is the problem? *</Label>
-              <Textarea
-                id="problem"
-                value={problemDescription}
-                onChange={(e) => setProblemDescription(e.target.value)}
-                placeholder="Describe the issue in detail. Example: The main road in our area has had dangerous potholes for 6 months. Despite  complaints to the municipal corporation, no action has been taken."
-                rows={5}
-                className="mt-2"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="impact">How does this affect you and others? *</Label>
-              <Textarea
-                id="impact"
-                value={personalImpact}
-                onChange={(e) => setPersonalImpact(e.target.value)}
-                placeholder="Example: These potholes have caused multiple accidents. My neighbor broke their leg after falling. Daily commute is dangerous for everyone."
-                rows={4}
-                className="mt-2"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="change">What change do you want? *</Label>
-              <Textarea
-                id="change"
-                value={desiredChange}
-                onChange={(e) => setDesiredChange(e.target.value)}
-                placeholder="Example: We demand the municipal corporation repair all potholes within 15 days and conduct regular road maintenance."
-                rows={4}
-                className="mt-2"
-              />
-            </div>
-
-            <Button
-              onClick={handleGeneratePetition}
-              disabled={loading}
-              variant="kairo"
-              size="lg"
-              className="w-full"
-            >
-              {loading ? (
-                'Generating Petition...'
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generate Petition with AI
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 2: Review */}
-      {step === 'review' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Review Your Petition</CardTitle>
-            <CardDescription>
-              AI has drafted your petition. You can edit it before publishing.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <Label htmlFor="title">Petition Title *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Give your petition a clear, concise title"
-                className="mt-2"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="content">Petition Content *</Label>
-              <Textarea
-                id="content"
-                value={generatedPetition}
-                onChange={(e) => setGeneratedPetition(e.target.value)}
-                rows={15}
-                className="mt-2 font-serif"
-              />
-            </div>
-
-            <div className="flex gap-4">
-              <Button
-                onClick={() => setStep('details')}
-                variant="outline"
-                className="flex-1"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <Button
-                onClick={() => setStep('location')}
+                onClick={() => {
+                  if (!title.trim()) {
+                    toast({
+                      title: 'Title Required',
+                      description: 'Please enter a title for your petition',
+                      variant: 'destructive',
+                    });
+                    return;
+                  }
+                  if (!generatedPetition.trim()) {
+                    toast({
+                      title: 'Content Required',
+                      description: 'Please enter petition content',
+                      variant: 'destructive',
+                    });
+                    return;
+                  }
+                  setStep('location');
+                }}
                 variant="kairo"
                 className="flex-1"
               >
@@ -718,17 +663,6 @@ export default function CreatePetitionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {locationAutoFilled && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2 text-green-700">
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-sm font-medium">
-                    Location auto-filled from your profile. You can update it below if needed.
-                  </span>
-                </div>
-              </div>
-            )}
-
             <div>
               <Label htmlFor="address">Address/Location</Label>
               <Textarea
@@ -745,13 +679,6 @@ export default function CreatePetitionPage() {
               <MapPin className="w-4 h-4 mr-2" />
               Use My Current Location
             </Button>
-
-            {location.latitude !== 0 && (
-              <div className="text-sm text-green-600 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Location captured: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-              </div>
-            )}
 
             <div className="flex gap-4">
               <Button

@@ -27,6 +27,7 @@ export function LocationSettings() {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [savedLocation, setSavedLocation] = useState<LocationData | null>(null);
+  const [showForm, setShowForm] = useState(false);
   
   // Form fields for address details
   const [formData, setFormData] = useState({
@@ -72,7 +73,8 @@ export function LocationSettings() {
         };
         setSavedLocation(savedData);
         
-        // Auto-fill form with saved data
+        // Store saved data in form for when user clicks "Get Current Location"
+        // But don't show the form yet
         setFormData({
           country: savedData.country,
           state: savedData.state,
@@ -101,6 +103,7 @@ export function LocationSettings() {
   const handleFetchLocation = async () => {
     try {
       await getCurrentLocation();
+      setShowForm(true); // Show form after fetching location
       toast({
         title: 'Location Fetched',
         description: 'Your current location has been retrieved. Address details are being loaded...',
@@ -168,6 +171,8 @@ export function LocationSettings() {
         updatedAt: result.data.updatedAt,
       });
 
+      setShowForm(false); // Hide form after successful save
+
       toast({
         title: 'Location Saved',
         description: 'Your location and address details have been saved successfully',
@@ -210,18 +215,17 @@ export function LocationSettings() {
       <CardContent className="space-y-4">
         {/* Saved Location Display */}
         {savedLocation && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="p-4 bg-bg-secondary border-2 border-strong rounded-lg">
             <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-success mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-green-900">Location Saved</p>
-                <p className="text-sm text-green-700 mt-1">
-                  {savedLocation.address || 'Address not provided'}
+                <p className="font-medium text-text-primary">Location Saved</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  {[savedLocation.address, savedLocation.district, savedLocation.state, savedLocation.country]
+                    .filter(Boolean)
+                    .join(', ') || 'No address details'}
                 </p>
-                <p className="text-xs text-green-600 mt-1">
-                  {savedLocation.district}, {savedLocation.state}, {savedLocation.country}
-                </p>
-                <p className="text-xs text-green-600 mt-1">
+                <p className="text-xs text-text-muted mt-1">
                   Last updated: {formatDate(savedLocation.updatedAt)}
                 </p>
               </div>
@@ -241,7 +245,7 @@ export function LocationSettings() {
         </Button>
 
         {/* Current GPS Coordinates */}
-        {location && (
+        {/* {location && (
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-blue-600 font-medium mb-1">GPS Coordinates:</p>
             <p className="text-sm text-blue-700">
@@ -251,84 +255,75 @@ export function LocationSettings() {
               Accuracy: ±{location.accuracy.toFixed(0)}m
             </p>
           </div>
+        )} */}
+
+        {/* Address Form Fields - Only show when form is active */}
+        {showForm && (
+          <>
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country *</Label>
+                  <Input
+                    id="country"
+                    placeholder="e.g., India"
+                    value={formData.country}
+                    onChange={(e) => handleInputChange('country', e.target.value)}
+                    disabled={!location}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="state">State *</Label>
+                  <Input
+                    id="state"
+                    placeholder="e.g., Maharashtra"
+                    value={formData.state}
+                    onChange={(e) => handleInputChange('state', e.target.value)}
+                    disabled={!location}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="district">District *</Label>
+                <Input
+                  id="district"
+                  placeholder="e.g., Mumbai"
+                  value={formData.district}
+                  onChange={(e) => handleInputChange('district', e.target.value)}
+                  disabled={!location}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Local Address</Label>
+                <Input
+                  id="address"
+                  placeholder="e.g., Street name, Locality, Landmark"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  disabled={!location}
+                />
+              </div>
+            </div>
+
+            {/* Save Button */}
+            {location && (
+              <Button
+                onClick={handleSaveLocation}
+                disabled={saving}
+                variant="kairo"
+                className="w-full"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Location'}
+              </Button>
+            )}
+          </>
         )}
 
-        {/* Address Form Fields */}
-        <div className="space-y-4 pt-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="country">Country *</Label>
-              <Input
-                id="country"
-                placeholder="e.g., India"
-                value={formData.country}
-                onChange={(e) => handleInputChange('country', e.target.value)}
-                disabled={!location}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="state">State *</Label>
-              <Input
-                id="state"
-                placeholder="e.g., Maharashtra"
-                value={formData.state}
-                onChange={(e) => handleInputChange('state', e.target.value)}
-                disabled={!location}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="district">District *</Label>
-            <Input
-              id="district"
-              placeholder="e.g., Mumbai"
-              value={formData.district}
-              onChange={(e) => handleInputChange('district', e.target.value)}
-              disabled={!location}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Local Address</Label>
-            <Input
-              id="address"
-              placeholder="e.g., Street name, Locality, Landmark"
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              disabled={!location}
-            />
-          </div>
-        </div>
-
-        {/* Save Button */}
-        {location && (
-          <Button
-            onClick={handleSaveLocation}
-            disabled={saving}
-            variant="kairo"
-            className="w-full"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Location'}
-          </Button>
-        )}
-
-        {/* Info Message */}
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-gray-600 mt-0.5" />
-            <div className="text-xs text-gray-600">
-              <p className="font-medium mb-1">Privacy Notice:</p>
-              <p>
-                Your location is used to automatically tag petitions and signatures with your area.
-                This helps authorities identify issues in specific regions. Your exact coordinates
-                are stored securely and only city/state information is shown publicly.
-              </p>
-            </div>
-          </div>
-        </div>
+     
       </CardContent>
     </Card>
   );

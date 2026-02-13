@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { usePetition } from '@/hooks/usePetitions';
 import { useAuth } from '@/hooks/useAuth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { ShareModal } from '@/components/ShareModal';
 import Link from 'next/link';
 import { 
   formatDate, 
@@ -28,6 +29,41 @@ export default function CommunityPetitionDetailPage() {
   const { petition, loading, refetch } = usePetition(params.id as string);
   const [hasSigned, setHasSigned] = useState(false);
   const [signing, setSigning] = useState(false);
+  const [checkingSignature, setCheckingSignature] = useState(true);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Check if user has already signed this petition
+  useEffect(() => {
+    const checkSignature = async () => {
+      if (!user || !petition) {
+        setCheckingSignature(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('signatures')
+          .select('id')
+          .eq('petition_id', petition.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!error && data) {
+          setHasSigned(true);
+        }
+      } catch (error) {
+        console.error('Error checking signature:', error);
+      } finally {
+        setCheckingSignature(false);
+      }
+    };
+
+    checkSignature();
+  }, [user, petition]);
+
+  const handleShare = async () => {
+    setShowShareModal(true);
+  };
 
   const handleSign = async () => {
     if (!user || !petition) return;
@@ -41,15 +77,25 @@ export default function CommunityPetitionDetailPage() {
         .eq('id', user.id)
         .single();
 
-      const { error } = await supabase.from('signatures').insert({
-        petition_id: petition.id,
-        user_id: user.id,
-        is_verified: user.isVerified,
-        location_lat: userData?.location_lat || null,
-        location_lng: userData?.location_lng || null,
+      const response = await fetch('/api/signatures/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          petition_id: petition.id,
+          user_id: user.id,
+          is_verified: user.isVerified,
+          location_lat: userData?.location_lat || null,
+          location_lng: userData?.location_lng || null,
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to sign petition');
+      }
 
       toast({
         title: 'Petition Signed!',
@@ -126,7 +172,7 @@ export default function CommunityPetitionDetailPage() {
                 </div>
               </div>
             </div>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" onClick={handleShare} title="Share petition">
               <Share2 className="w-4 h-4" />
             </Button>
           </div>
@@ -138,26 +184,24 @@ export default function CommunityPetitionDetailPage() {
             </p>
           </div>
 
-          {!hasSigned && user?.id !== petition.creatorId && (
+          {user?.id !== petition.creatorId && (
             <div className="pt-8 border-t">
-              <Button
-                onClick={handleSign}
-                disabled={signing}
-                size="lg"
-                variant="kairo"
-                className="w-full md:w-auto"
-              >
-                {signing ? 'Signing...' : 'Sign This Petition'}
-              </Button>
-            </div>
-          )}
-
-          {hasSigned && (
-            <div className="pt-8 border-t">
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">You've signed this petition</span>
-              </div>
+              {hasSigned ? (
+                <div className="flex items-center gap-2 text-success">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="font-medium text-lg">Signed</span>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleSign}
+                  disabled={signing || checkingSignature}
+                  size="lg"
+                  variant="kairo"
+                  className="w-full md:w-auto"
+                >
+                  {checkingSignature ? 'Loading...' : signing ? 'Signing...' : 'Sign This Petition'}
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
@@ -181,6 +225,16 @@ export default function CommunityPetitionDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Share Modal */}
+      {petition && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title={petition.title}
+          shareUrl={`${window.location.origin}/dashboard/community/${petition.id}`}
+        />
+      )}
     </div>
   );
 }

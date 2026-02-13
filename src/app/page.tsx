@@ -37,7 +37,7 @@ export default function HomePage() {
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-semibold text-primary">KAIRO</span>
+            <span className="text-xl font-semibold text-primary">PETICIA</span>
           </div>
           <Link href="/auth/login">
             <Button>Get Started</Button>
@@ -52,7 +52,7 @@ export default function HomePage() {
             <span className="text-accent"> Government Action</span>
           </h1>
           <p className="text-lg text-secondary mb-8 max-w-2xl mx-auto">
-            India's first civic operating system that bridges citizens and government 
+            India's own civic operating system that bridges citizens and government 
             accountability. Know your rights, raise your voice, and create real change.
           </p>
           <Link href="/auth/login">
@@ -103,7 +103,7 @@ export default function HomePage() {
 
         {/* How It Works */}
         <div className="mt-32">
-          <h2 className="text-3xl font-semibold text-center mb-12 text-primary">How KAIRO Works</h2>
+          <h2 className="text-3xl font-semibold text-center mb-12 text-primary">How PETICIA Works</h2>
           <div className="grid md:grid-cols-4 gap-6">
             <StepCard number={1} title="Verify Identity" description="Sign up with your phone number" />
             <StepCard number={2} title="Know Rights" description="Get legal guidance from AI assistant" />
@@ -120,7 +120,7 @@ export default function HomePage() {
           </p>
           <Link href="/auth/login">
             <Button size="lg" className="text-sm px-8">
-              Join KAIRO Today
+              Join PETICIA Today
             </Button>
           </Link>
         </div>
@@ -129,7 +129,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-subtle mt-20 py-8">
         <div className="container mx-auto px-4 text-center text-muted">
-          <p>&copy; 2026 KAIRO - India's Civic Operating System</p>
+          <p>2026 PETICIA</p>
         </div>
       </footer>
     </div>
@@ -138,7 +138,7 @@ export default function HomePage() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="bg-secondary border border-subtle rounded-xl p-6">
+    <div className="bg-secondary border-2 border-strong rounded-xl p-6 transition-transform duration-200 hover:scale-105">
       <div className="text-accent mb-4">{icon}</div>
       <h3 className="text-sm font-semibold mb-2 text-primary">{title}</h3>
       <p className="text-xs text-secondary">{description}</p>
@@ -148,7 +148,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
 
 function StatCard({ number, label }: { number: string; label: string }) {
   return (
-    <div className="bg-secondary border border-subtle rounded-xl p-8">
+    <div className="bg-secondary border-2 border-strong rounded-xl p-8 transition-transform duration-200 hover:scale-105">
       <div className="text-3xl font-semibold text-accent mb-2">{number}</div>
       <div className="text-sm text-secondary">{label}</div>
     </div>
@@ -157,7 +157,7 @@ function StatCard({ number, label }: { number: string; label: string }) {
 
 function StepCard({ number, title, description }: { number: number; title: string; description: string }) {
   return (
-    <div className="bg-secondary border border-subtle rounded-xl p-6 relative">
+    <div className="bg-secondary border-2 border-strong rounded-xl p-6 relative transition-transform duration-200 hover:scale-105">
       <div className="absolute -top-3 left-6 w-6 h-6 bg-accent rounded-full flex items-center justify-center text-white text-xs font-semibold">
         {number}
       </div>

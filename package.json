@@ -1,7 +1,7 @@
 {
-  "name": "kairo-civic-platform",
+  "name": "peticia-civic-platform",
   "version": "1.0.0",
-  "description": "India's First Civic Operating System - Converting Awareness into Government Action",
+  "description": "PETICIA - India's Civic Operating System - Converting Awareness into Government Action",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -24,6 +24,7 @@
     "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-toast": "^1.1.5",
     "@supabase/supabase-js": "^2.39.8",
+    "@vercel/analytics": "^1.6.1",
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",

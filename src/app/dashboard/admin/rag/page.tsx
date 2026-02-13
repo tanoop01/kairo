@@ -142,7 +142,8 @@ export default function RAGAdminPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <strong>Before running:</strong> Make sure you have added your OPENAI_API_KEY to .env.local
-              and executed the supabase-rag-schema.sql in your Supabase SQL Editor.
+              and applied all database migrations with <code>supabase db reset</code>.
+              The RAG schema is included in the baseline migration.
             </AlertDescription>
           </Alert>
 
